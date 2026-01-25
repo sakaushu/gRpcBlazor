@@ -1,0 +1,60 @@
+@page "/time"
+@rendermode InteractiveServer
+@using systeminfo
+@using Google.Protobuf.WellKnownTypes
+@inject ILogger<Time> Logger
+@inject SystemService.SystemServiceClient SystemClient
+
+<PageTitle>System Time</PageTitle>
+
+<h1>System Time</h1>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (systemTime == null)
+{
+    <p class="text-danger">Failed to fetch system time.</p>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <div><strong>ISO 8601:</strong> @systemTime.Iso8601</div>
+        <div><strong>Unix Microseconds:</strong> @systemTime.UnixMicroseconds</div>
+    </div>
+}
+
+<button class="btn btn-primary" @onclick="RefreshAsync" disabled="@loading">Refresh</button>
+
+@code {
+    private SystemTime? systemTime;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("System Time page initialized");
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            loading = true;
+            
+            systemTime = await SystemClient.GetSystemTimeAsync(new Empty());
+            Logger.LogInformation("Received system time {Iso}", systemTime.Iso8601);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load system time");
+            systemTime = null;
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+}

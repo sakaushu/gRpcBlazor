@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+    "profiles": {
+      "http": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "http://localhost:5103",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "Logging__FilePath": "logs/launcher-debug.log",
+          "GRPC_SERVER_ADDRESS": "http://localhost:5053"
+        }
+      },
+      "https": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "https://localhost:7158;http://localhost:5103",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "Logging__FilePath": "logs/launcher-debug.log",
+          "GRPC_SERVER_ADDRESS": "http://localhost:5053"
+        }
+      }
+    }
+  }

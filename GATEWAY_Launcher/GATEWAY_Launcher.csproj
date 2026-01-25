@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <!-- Core を参照しない。proto からクライアントを生成 -->
+  <ItemGroup>
+    <Protobuf Include="../GATEWAY_Core/Protos/greet.proto" GrpcServices="Client" />
+    <Protobuf Include="../GATEWAY_Core/Protos/network.proto" GrpcServices="Client" />
+    <Protobuf Include="../GATEWAY_Core/Protos/systeminfo.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.33.4" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.72.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="MudBlazor" Version="8.15.0" />
+  </ItemGroup>
+
+</Project>

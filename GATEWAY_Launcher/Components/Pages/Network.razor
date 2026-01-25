@@ -1,0 +1,83 @@
+@page "/network"
+@rendermode InteractiveServer
+@using network
+@inject ILogger<Network> Logger
+@inject NetworkService.NetworkServiceClient NetworkClient
+
+<PageTitle>Network Interfaces</PageTitle>
+
+<h1>Network Interfaces</h1>
+
+@if (interfaces == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (interfaces.Count == 0)
+{
+    <p>No network interfaces found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>MAC Address</th>
+                    <th>Status</th>
+                    <th>Speed</th>
+                    <th>IP Addresses</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var nic in interfaces)
+                {
+                    <tr>
+                        <td>@nic.Name</td>
+                        <td>@nic.Description</td>
+                        <td>@nic.MacAddress</td>
+                        <td>@nic.Status</td>
+                        <td>@FormatSpeed(nic.Speed)</td>
+                        <td>
+                            @foreach (var ip in nic.IpAddresses)
+                            {
+                                <div>@ip</div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<NICInfo>? interfaces;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Network page initialized");
+
+        try
+        {
+            var response = await NetworkClient.GetNetworkInterfacesAsync(new Empty());
+            interfaces = response.Interfaces.ToList();
+
+            Logger.LogInformation("Received {Count} interfaces", interfaces.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load network interfaces");
+            interfaces = new List<NICInfo>();
+        }
+    }
+
+    private string FormatSpeed(long speed)
+    {
+        if (speed == 0) return "Unknown";
+        if (speed >= 1_000_000_000) return $"{speed / 1_000_000_000} Gbps";
+        if (speed >= 1_000_000) return $"{speed / 1_000_000} Mbps";
+        return $"{speed} bps";
+    }
+}

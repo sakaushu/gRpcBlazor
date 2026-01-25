@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option csharp_namespace = "network";
+
+package network;
+
+service NetworkService {
+  rpc GetNetworkInterfaces (Empty) returns (NetworkInterfaceList);
+}
+
+message Empty {}
+
+message NetworkInterfaceList {
+  repeated NICInfo interfaces = 1;
+}
+
+message NICInfo {
+  string name = 1;
+  string description = 2;
+  repeated string ip_addresses = 3;
+  string mac_address = 4;
+  string status = 5;
+  int64 speed = 6;
+}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option csharp_namespace = "systeminfo";
+
+package systeminfo;
+
+import "google/protobuf/empty.proto";
+
+service SystemService {
+  rpc GetSystemTime (google.protobuf.Empty) returns (SystemTime);
+}
+
+message SystemTime {
+  int64 unix_microseconds = 1;
+  string iso8601 = 2;
+}
