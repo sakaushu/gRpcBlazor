@@ -20,11 +20,11 @@ services:
       context: .
       dockerfile: ./docker/GATEWAY_Core/Dockerfile
     container_name: grpc-server
+    ports:
+      - "5000:5000"
     environment:
-      - ASPNETCORE_URLS=http://+:5000
       - ASPNETCORE_ENVIRONMENT=Development
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
-      - Logging__FilePath=/app/logs/core/grpc-server.log
     networks:
       - grpc-network
     restart: unless-stopped
@@ -39,11 +39,10 @@ services:
       context: .
       dockerfile: ./docker/GATEWAY_Launcher/Dockerfile
     container_name: blazor-client
+    ports:
+      - "5001:5001"
     environment:
-      - ASPNETCORE_URLS=http://+:5001
       - ASPNETCORE_ENVIRONMENT=Development
-      - GRPC_SERVER_ADDRESS=http://grpc-server:5000
-      - Logging__FilePath=/app/logs/launcher/launcher.log
     depends_on:
       - grpc-server
     networks:
