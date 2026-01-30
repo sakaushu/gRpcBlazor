@@ -1,1 +1,57 @@
-#!/bin/bash# Dockerイメージを読み込むスクリプト# 保存されたtarファイルからイメージをロードします# 読み込み元ディレクトリINPUT_DIR="./docker_images"echo "==================================="echo "Dockerイメージの読み込みを開始します"echo "==================================="# ディレクトリの存在確認if [ ! -d "$INPUT_DIR" ]; then    echo "エラー: $INPUT_DIR が見つかりません"    exit 1fi# 各イメージファイルの読み込みecho ""echo "[1/3] gRPC Serverイメージを読み込んでいます..."if [ -f "$INPUT_DIR/grpc-server.tar" ]; then    docker load -i "$INPUT_DIR/grpc-server.tar"else    echo "警告: grpc-server.tar が見つかりません"fiecho ""echo "[2/3] Blazor Clientイメージを読み込んでいます..."if [ -f "$INPUT_DIR/blazor-client.tar" ]; then    docker load -i "$INPUT_DIR/blazor-client.tar"else    echo "警告: blazor-client.tar が見つかりません"fiecho ""echo "[3/3] Nginxイメージを読み込んでいます..."if [ -f "$INPUT_DIR/nginx.tar" ]; then    docker load -i "$INPUT_DIR/nginx.tar"else    echo "警告: nginx.tar が見つかりません"fiecho ""echo "==================================="echo "読み込みが完了しました！"echo "==================================="echo ""echo "読み込まれたイメージ:"docker images | grep -E "docker_gateway|nginx"echo ""echo "-----------------------------------"echo "起動方法:"echo "-----------------------------------"echo "docker compose -f docker-compose.prod.yml up -d"echo "-----------------------------------"
+#!/bin/bash
+
+# Dockerイメージを読み込むスクリプト
+# 保存されたtarファイルからイメージをロードします
+
+# 読み込み元ディレクトリ
+INPUT_DIR="./docker_images"
+
+echo "==================================="
+echo "Dockerイメージの読み込みを開始します"
+echo "==================================="
+
+# ディレクトリの存在確認
+if [ ! -d "$INPUT_DIR" ]; then
+    echo "エラー: $INPUT_DIR が見つかりません"
+    exit 1
+fi
+
+# 各イメージファイルの読み込み
+echo ""
+echo "[1/3] gRPC Serverイメージを読み込んでいます..."
+if [ -f "$INPUT_DIR/grpc-server.tar" ]; then
+    docker load -i "$INPUT_DIR/grpc-server.tar"
+else
+    echo "警告: grpc-server.tar が見つかりません"
+fi
+
+echo ""
+echo "[2/3] Blazor Clientイメージを読み込んでいます..."
+if [ -f "$INPUT_DIR/blazor-client.tar" ]; then
+    docker load -i "$INPUT_DIR/blazor-client.tar"
+else
+    echo "警告: blazor-client.tar が見つかりません"
+fi
+
+echo ""
+echo "[3/3] Nginxイメージを読み込んでいます..."
+if [ -f "$INPUT_DIR/nginx.tar" ]; then
+    docker load -i "$INPUT_DIR/nginx.tar"
+else
+    echo "警告: nginx.tar が見つかりません"
+fi
+
+echo ""
+echo "==================================="
+echo "読み込みが完了しました！"
+echo "==================================="
+echo ""
+echo "読み込まれたイメージ:"
+docker images | grep -E "docker_gateway|nginx"
+
+echo ""
+echo "-----------------------------------"
+echo "起動方法:"
+echo "-----------------------------------"
+echo "docker compose -f docker-compose.prod.yml up -d"
+echo "-----------------------------------"
