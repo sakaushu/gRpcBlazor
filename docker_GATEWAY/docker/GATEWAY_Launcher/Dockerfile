@@ -14,5 +14,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 WORKDIR /app
 COPY --from=build /app/publish .
 
-EXPOSE 5001
+EXPOSE 5000
 ENTRYPOINT ["dotnet", "GATEWAY_Launcher.dll"]

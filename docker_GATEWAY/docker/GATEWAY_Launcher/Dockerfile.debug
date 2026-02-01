@@ -1,0 +1,27 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS base
+WORKDIR /app
+EXPOSE 5000
+
+# Install vsdbg for remote debugging
+RUN apt-get update && apt-get install -y unzip procps && \
+    curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["src/GATEWAY_Launcher/GATEWAY_Launcher.csproj", "GATEWAY_Launcher/"]
+COPY ["src/GATEWAY_Core/GATEWAY_Core.csproj", "GATEWAY_Core/"]
+RUN dotnet restore "GATEWAY_Launcher/GATEWAY_Launcher.csproj"
+
+COPY src/GATEWAY_Launcher/. ./GATEWAY_Launcher/
+COPY src/GATEWAY_Core/. ./GATEWAY_Core/
+RUN dotnet build "GATEWAY_Launcher/GATEWAY_Launcher.csproj" -c Debug -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "GATEWAY_Launcher/GATEWAY_Launcher.csproj" -c Debug -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "GATEWAY_Launcher.dll"]

@@ -14,12 +14,12 @@ services:
       - grpc-network
     restart: unless-stopped
 
-  # gRPC サーバー（Core）
+  # gRPC サーバー（Core）- Debug版
   grpc-server:
     build:
       context: .
-      dockerfile: ./docker/GATEWAY_Core/Dockerfile
-    container_name: grpc-server
+      dockerfile: ./docker/GATEWAY_Core/Dockerfile.debug
+    container_name: grpc-server-debug
     ports:
       - "5001:5001"
     environment:
@@ -33,13 +33,17 @@ services:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
       - /etc/machine-id:/etc/machine-id:ro
       - ./logs/core:/app/logs/core
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
 
-  # Blazor クライアント（Launcher）
+  # Blazor クライアント（Launcher）- Debug版
   blazor-client:
     build:
       context: .
-      dockerfile: ./docker/GATEWAY_Launcher/Dockerfile
-    container_name: blazor-client
+      dockerfile: ./docker/GATEWAY_Launcher/Dockerfile.debug
+    container_name: blazor-client-debug
     ports:
       - "5000:5000"
     environment:
@@ -53,6 +57,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs/launcher:/app/logs/launcher
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
 
 networks:
   grpc-network:

@@ -6,12 +6,12 @@ COPY ["src/GATEWAY_Core/GATEWAY_Core.csproj", "GATEWAY_Core/"]
 RUN dotnet restore "GATEWAY_Core/GATEWAY_Core.csproj"
 
 COPY src/GATEWAY_Core/. ./GATEWAY_Core/
-RUN dotnet build "GATEWAY_Core/GATEWAY_Core.csproj" -c Release -o /app/build
+RUN dotnet publish "GATEWAY_Core/GATEWAY_Core.csproj" -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 RUN apk add --no-cache dbus
 WORKDIR /app
-COPY --from=build /app/build .
+COPY --from=build /app/publish .
 
-EXPOSE 5000
+EXPOSE 5001
 ENTRYPOINT ["dotnet", "GATEWAY_Core.dll"]
