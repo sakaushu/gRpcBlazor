@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package GATEWAYCore;
+
+// ===== Service =====
+service NetworkConfigService {
+    //設定適用
+    rpc ApplyNicConfigs(ApplyNicConfigsRequest) returns (ApplyNicConfigsResponse);
+
+    //設定取得（OS実設定）
+    rpc GetAllNicConfigs(google.protobuf.Empty) returns (GetAllNicConfigsResponse);
+
+    //設定取得（設定ファイル）
+    rpc GetStoredNicConfigs(google.protobuf.Empty) returns (GetAllNicConfigsResponse);
+}
+
+// ===== Message =====
+
+message ApplyNicConfigsRequest {
+    repeated NicConfig nics = 1;
+    string gateway = 2;
+    DnsConfig dns = 3;
+}
+
+message ApplyNicConfigsResponse {
+    repeated NicConfig nics = 1;
+    string gateway = 2;
+    DnsConfig dns = 3;
+}
+
+message GetAllNicConfigsResponse {
+    repeated NicConfig nics = 1;
+    string gateway = 2;
+    DnsConfig dns = 3;
+}
+
+message NicConfig {
+    string interface_name = 1;
+    string mac_address = 2;
+    Ipv4Config ipv4 = 3;
+}
+
+message Ipv4Config {
+    Ipv4Method method = 1;
+    string address = 2;
+    int32 prefix = 3;
+}
+
+message DnsConfig {
+    repeated string servers = 1;
+}
+
+enum Ipv4Method {
+    IPV4_METHOD_UNSPECIFIED = 0;
+    IPV4_METHOD_DHCP = 1;
+    IPV4_METHOD_STATIC = 2;
+}

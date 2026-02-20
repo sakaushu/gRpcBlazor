@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SystemData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Config>
+        <Data>
+            <Item>設定ファイルバージョン</Item>
+            <Key>FileVersion</Key>
+            <Value>0.0.3</Value>
+        </Data>
+        <Data>
+            <Item>eth0 IPAddress</Item>
+            <Key>Eth0Ip</Key>
+            <Value>0xC0A80101</Value>
+        </Data>
+        <Data>
+            <Item>eth0 Subnet mask</Item>
+            <Key>Eth0Mask</Key>
+            <Value>0xFFFFFF00</Value>
+        </Data>
+        <Data>
+            <Item>eth0 DHCP Enabled</Item>
+            <Key>Eth0Dhcp</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>eth1 IPAddress</Item>
+            <Key>Eth1Ip</Key>
+            <Value>0xC0A80102</Value>
+        </Data>
+        <Data>
+            <Item>eth1 Subnet mask</Item>
+            <Key>Eth1Mask</Key>
+            <Value>0xFFFFFF00</Value>
+        </Data>
+        <Data>
+            <Item>eth1 DHCP Enabled</Item>
+            <Key>Eth1Dhcp</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>eth2 IPAddress</Item>
+            <Key>Eth2Ip</Key>
+            <Value>0xC0A80103</Value>
+        </Data>
+        <Data>
+            <Item>eth2 Subnet mask</Item>
+            <Key>Eth2Mask</Key>
+            <Value>0xFFFFFF00</Value>
+        </Data>
+        <Data>
+            <Item>eth2 DHCP Enabled</Item>
+            <Key>Eth2Dhcp</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>eth gateway</Item>
+            <Key>EthGateway</Key>
+            <Value>0xC0A801FE</Value>
+        </Data>
+        <Data>
+            <Item>eth 優先1</Item>
+            <Key>EthDnsFirst</Key>
+            <Value>0xC0A801FE</Value>
+        </Data>
+        <Data>
+            <Item>eth 優先2</Item>
+            <Key>EthDnsSecond</Key>
+            <Value>0x00000000</Value>
+        </Data>
+        <Data>
+            <Item>eth 終了時無効</Item>
+            <Key>ComEthEndDisable</Key>
+            <Value>1</Value>
+        </Data>
+        <Data>
+            <Item>eth 有効化待ち時間</Item>
+            <Key>ComEthWaitEnable</Key>
+            <Value>3000</Value>
+        </Data>
+        <Data>
+            <Item>eth 変更後待ち時間</Item>
+            <Key>ComEthWaitChange</Key>
+            <Value>3000</Value>
+        </Data>
+        <Data>
+            <Item>プロキシ有効 (0: 無効, 1: 有効)</Item>
+            <Key>ProxyEnable</Key>
+            <Value>1</Value>
+        </Data>
+        <Data>
+            <Item>プロキシアドレス</Item>
+            <Key>ProxyAddress</Key>
+            <Value></Value>
+        </Data>
+        <Data>
+            <Item>タイムゾーン</Item>
+            <Key>TimeZone</Key>
+            <Value>Asia/Tokyo</Value>
+        </Data>
+        <Data>
+            <Item>NTP サーバー機能有効設定 (0: 無効, 1: 有効)</Item>
+            <Key>NtpEnable</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>NTP サーバーURL</Item>
+            <Key>NtpUrl</Key>
+            <Value></Value>
+        </Data>
+        <Data>
+            <Item>UPS開始待ち時間[s]</Item>
+            <Key>UpsStartWait</Key>
+            <Value>10</Value>
+        </Data>
+        <Data>
+            <Item>UPS状態監視周期[s]</Item>
+            <Key>UpsWatchInterval</Key>
+            <Value>300</Value>
+        </Data>
+        <Data>
+            <Item>UPS有効設定 (0:無効|1:有効)</Item>
+            <Key>UpsEnable</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>UPS選択</Item>
+            <Key>UpsSelect</Key>
+            <Value></Value>
+        </Data>
+        <Data>
+            <Item>UPS接続方法リスト</Item>
+            <Key>UpsConnectList</Key>
+            <Value>COMx,USB</Value>
+        </Data>
+        <Data>
+            <Item>UPS監視OSシャットダウン待ち時間[s]</Item>
+            <Key>UpsWaitOsShutdown</Key>
+            <Value>60</Value>
+        </Data>
+        <Data>
+            <Item>UPS監視UPS電源待ち時間[s]</Item>
+            <Key>UpsWaitUpsPoweroff</Key>
+            <Value>180</Value>
+        </Data>
+        <Data>
+            <Item>UPS設定ファイルパス（APC)</Item>
+            <Key>UpsNutConfFilepath</Key>
+            <Value>/etc/nut/ups.conf</Value>
+        </Data>
+        <Data>
+            <Item>パスワード文字数下限</Item>
+            <Key>OsPasswdLenMin</Key>
+            <Value>1</Value>
+        </Data>
+        <Data>
+            <Item>パスワード文字数上限</Item>
+            <Key>OsPasswdLenMax</Key>
+            <Value>127</Value>
+        </Data>
+        <Data>
+            <Item>ユーザー初期パスワード</Item>
+            <Key>UserInitPasswd</Key>
+            <Value></Value>
+        </Data>
+        <Data>
+            <Item>コマンド実行タイムアウト</Item>
+            <Key>CmdexecTimeout</Key>
+            <Value>5000</Value>
+        </Data>
+        <Data>
+            <Item>Zabbixエージェント設定（0:無効、1:01を有効）</Item>
+            <Key>ZabbixServiceAgentEnable</Key>
+            <Value>0</Value>
+        </Data>
+        <Data>
+            <Item>Zabbixエージェント設定 Server=, ServerActive=</Item>
+            <Key>ZabbixService01ConfValAddress</Key>
+            <Value>127.0.0.1</Value>
+        </Data>
+        <Data>
+            <Item>ポートフォワーディング設定</Item>
+            <Key>PortForwardingList</Key>
+            <Value></Value>
+        </Data>
+    </Config>
+</SystemData>

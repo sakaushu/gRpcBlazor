@@ -1,0 +1,77 @@
+@page "/Ethernet"
+@layout MainLayout
+@rendermode InteractiveServer
+@inject Services.NicConfigService NicService
+@inject MudBlazor.IDialogService DialogService
+
+<PageTitle>Ethernet</PageTitle>
+
+@if (Model != null)
+{
+	<MudGrid>
+		@foreach (var eth in Model.Interfaces)
+		{
+			<MudItem xs="12">
+				<MudPaper Outlined="true" Class="pa-4">
+					<MudText Typo="Typo.h6">@eth.Name</MudText>
+					<MudGrid>
+						<MudItem xs="6"><MudText>物理アドレス：</MudText></MudItem>
+						<MudItem xs="6"><MudText>@eth.Mac</MudText></MudItem>
+						<MudItem xs="6"><MudText>DHCP有効：</MudText></MudItem>
+						<MudItem xs="6"><MudText>@(eth.DhcpEnabled ? "有効" : "無効")</MudText></MudItem>
+						<MudItem xs="6"><MudText>IPアドレス：</MudText></MudItem>
+						<MudItem xs="6"><MudText>@eth.IpAddress</MudText></MudItem>
+						<MudItem xs="6"><MudText>サブネットマスク：</MudText></MudItem>
+						<MudItem xs="6"><MudText>@eth.SubnetMask</MudText></MudItem>
+					</MudGrid>
+				</MudPaper>
+			</MudItem>
+		}
+		<MudItem xs="12">
+			<MudPaper Outlined="true" Class="pa-4">
+				<MudText Typo="Typo.h6">ルート・DNS</MudText>
+				<MudGrid>
+					<MudItem xs="6"><MudText>デフォルトゲートウェイ：</MudText></MudItem>
+					<MudItem xs="6"><MudText>@Model.DefaultGateway</MudText></MudItem>
+					<MudItem xs="6"><MudText>Primary DNS：</MudText></MudItem>
+					<MudItem xs="6"><MudText>@Model.DnsServers[0]</MudText></MudItem>
+					<MudItem xs="6"><MudText>Secondary DNS：</MudText></MudItem>
+					<MudItem xs="6"><MudText>@Model.DnsServers[1]</MudText></MudItem>
+				</MudGrid>
+			</MudPaper>
+		</MudItem>
+	</MudGrid>
+
+	<MudItem Class="d-flex justify-end align-center">
+		<MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnChangeSettings" >
+			設定変更
+		</MudButton>
+	</MudItem>
+}
+else
+{
+	<MudText>データを読み込み中...</MudText>
+}
+
+@code {
+	private NicConfigModel? Model;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await NicService.LoadFromServerAsync();
+		Model = NicService.GetModel();
+	}
+
+	private async Task OnChangeSettings()
+	{
+		if (Model == null) return;
+		
+        var updatedModel = await NicService.RequestNicSettingsChangeAsync();
+        if (updatedModel != null)
+		{
+			// モデルを更新して画面を再描画
+			Model = updatedModel;
+			StateHasChanged();
+		}
+	}
+}

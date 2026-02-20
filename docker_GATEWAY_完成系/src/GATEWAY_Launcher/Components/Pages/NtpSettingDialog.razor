@@ -1,0 +1,116 @@
+@inject Services.TimeSettingService TimeService
+@inject MudBlazor.ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudItem xs="12" Class="d-flex align-center">
+            <MudCheckBox @bind-Value="EditModel.SyncCheck" Label="NTPサーバと同期する"></MudCheckBox>
+        </MudItem>
+        <MudGrid>   
+            <MudItem xs="2" Class="d-flex align-center"><MudText>サーバ：</MudText></MudItem>
+            <MudItem xs="6" Class="d-flex align-center">
+                <MudTextField T="string" @bind-Value="EditModel.NtpServer" Style="width: 300px;" Variant="Variant.Outlined" Disabled="!EditModel.SyncCheck"></MudTextField>
+            </MudItem>
+            <MudItem xs="4" Class="d-flex justify-end align-center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnUpdateNow" Disabled="!EditModel.SyncCheck">
+                    今すぐ更新
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudItem xs = "12" Class="d-flex justify-end align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnOk">OK</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="OnCancel">キャンセル</MudButton>
+        </MudItem>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public required NtpSettingModel Model { get; set; }
+
+
+    private NtpSettingModel EditModel = new NtpSettingModel();
+
+    protected override void OnParametersSet()
+    {
+        // 親から渡された Model をチェックボックスの初期状態として設定
+        EditModel.SyncCheck = Model.SyncCheck;
+        EditModel.NtpServer = Model.NtpServer;
+    }
+
+    private async Task OnUpdateNow()
+    {
+        // サーバ名が空の場合はエラーメッセージを表示
+        if (string.IsNullOrWhiteSpace(EditModel.NtpServer))
+        {
+            Snackbar.Add("サーバを設定してください", Severity.Error);
+            return;
+        }
+
+        // 入力値の検証に失敗した場合は処理を中断
+        if (!TimeService.ValidateInput(EditModel.NtpServer))
+        {
+            Snackbar.Add("サーバ名は半角英数字とドット（.）のみで構成してください", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            // サーバー側に入力されたホスト名を送信し、NTPで時刻設定を実施
+            var response = await TimeService.UpdateTimeUsingNtpAsync(EditModel);
+            Snackbar.Add($"NTPサーバ「{EditModel.NtpServer}」と同期しました", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"NTPサーバ「{EditModel.NtpServer}」への接続でエラーが発生しました: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnOk()
+    {
+        if (EditModel.SyncCheck)
+        {
+            if (string.IsNullOrWhiteSpace(EditModel.NtpServer))
+            {
+                // NTP同期有効でサーバ名が未入力の場合、エラーを出して処理しない
+                Snackbar.Add("サーバを設定してください", Severity.Error);
+                return;
+            }
+
+            // 入力値の検証に失敗した場合は処理を中断
+            if (!TimeService.ValidateInput(EditModel.NtpServer))
+            {
+                Snackbar.Add("サーバ名は半角英数字とドット（.）のみで構成してください", Severity.Error);
+                return;
+            }
+        }
+
+        try
+        {
+            // サーバへ同期設定情報を送信し、レスポンスを受け取る
+            var updatedSyncCheck = await TimeService.UpdateNtpSettingsAsync(EditModel);
+
+            // 取得したレスポンスから同期状態をモデルに反映
+            Model.SyncCheck = updatedSyncCheck.SyncCheck;
+            Model.NtpServer = updatedSyncCheck.NtpServer;
+
+            // ダイアログを閉じ、最新モデルを親コンポーネントに返す
+            MudDialog.Close(DialogResult.Ok(Model));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"エラー: {ex.Message}");
+            // エラー時もダイアログを閉じて、親コンポーネントでエラーを表示
+            MudDialog.Close(DialogResult.Cancel());
+        }
+    }
+
+    private void OnCancel()
+    {
+        MudDialog.Cancel();
+    }
+}

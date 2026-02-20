@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package GATEWAYCore;
+
+// ===== Service =====
+service HTTPProxyConfigService {
+    //設定適用
+    rpc SetHTTPProxy(SetHTTPProxyRequest) returns (SetHTTPProxyResponse);
+
+    //設定取得
+    rpc GetHTTPProxy(google.protobuf.Empty) returns (GetHTTPProxyResponse);
+}
+
+// ===== Message =====
+
+
+message SetHTTPProxyRequest {
+    HTTPProxySetting http_proxy = 1;
+    HTTPSProxySetting https_proxy = 2;
+}
+
+message SetHTTPProxyResponse {
+    bool success = 1;
+    HTTPProxySetting http_proxy = 2;
+    HTTPSProxySetting https_proxy = 3;
+}
+
+message GetHTTPProxyResponse {
+    HTTPProxySetting http_proxy = 1;
+    HTTPSProxySetting https_proxy = 2;
+}
+
+message HTTPProxySetting {
+    bool enabled = 1;
+    string proxy_address = 2;
+    int32 proxy_port = 3;
+    string username = 4;
+    string password = 5;
+}
+
+message HTTPSProxySetting {
+    bool enabled = 1;
+    string proxy_address = 2;
+    int32 proxy_port = 3;
+    string username = 4;
+    string password = 5;
+}

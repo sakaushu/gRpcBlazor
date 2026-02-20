@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package GATEWAYCore;
+
+// ===== Service =====
+service PortForwardConfigService {
+
+  // ポートフォワーディング設定を適用
+  rpc ApplyPortForwards (ApplyPortForwardsRequest) returns (ApplyPortForwardsResponse);
+
+  // ポートフォワーディング設定を設定ファイルから取得
+  rpc GetStoredPortForwards (google.protobuf.Empty) returns (GetStoredPortForwardsResponse);
+
+  // 物理インタフェース一覧を取得
+  rpc GetNetworkInterfaceList (google.protobuf.Empty) returns (GetNetworkInterfaceListResponse);
+}
+
+// ===== Message =====
+message PortForwardRule {
+  string interface_name = 1;
+  bool is_tcp = 2;
+  int32 source_port = 3;
+  string dest_ip = 4;
+  int32 dest_port = 5;
+}
+
+message ApplyPortForwardsRequest {
+  repeated PortForwardRule rules = 1;
+}
+
+message ApplyPortForwardsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetStoredPortForwardsResponse {
+  repeated PortForwardRule rules = 1;
+}
+
+message GetNetworkInterfaceListResponse {
+  repeated string interfaces = 1;
+}

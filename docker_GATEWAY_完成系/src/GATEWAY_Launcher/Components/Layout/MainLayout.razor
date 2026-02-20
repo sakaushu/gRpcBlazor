@@ -1,0 +1,88 @@
+﻿@inherits LayoutComponentBase
+
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+<MudLayout>
+    @* 左側に配置するメニュー *@
+    <MudDrawer Open="true" Elevation="1" Variant="DrawerVariant.Persistent" ClipMode="DrawerClipMode.Always" Width="280px">
+        <MudNavMenu>
+            <!-- ネットワーク（ドロップダウン） -->
+            <MudExpansionPanel Text="ネットワーク">
+                <MudNavLink Href="/Ethernet">イーサネット</MudNavLink>
+                <MudNavLink Href="/proxy">プロキシ</MudNavLink>
+                <MudNavLink Href="#">ファイアウォール</MudNavLink>
+                <MudNavLink Href="/PortForwarding">ポートフォワーディング</MudNavLink>
+            </MudExpansionPanel>
+            <!-- 管理（ドロップダウン） -->
+            <MudExpansionPanel Text="管理">
+                <MudNavLink Href="#">ユーザー</MudNavLink>
+                <MudNavLink Href="/timesetting">時間設定</MudNavLink>
+                <MudNavLink Href="#">証明書</MudNavLink>
+            </MudExpansionPanel>
+            <!-- オプション（ドロップダウン） -->
+            <MudExpansionPanel Text="オプション">
+                <MudNavLink Href="/AzureIoTEdge">Azure IoT Edge</MudNavLink>
+                <MudNavLink Href="#">リモートアクセスVPN</MudNavLink>
+                <MudNavLink Href="#">UPS</MudNavLink>
+                <MudNavLink Href="#">FTPサーバー</MudNavLink>
+                <MudNavLink Href="#">SNMPエージェント</MudNavLink>
+                <MudNavLink Href="#">Zabbixエージェント</MudNavLink>
+                <MudNavLink Href="#">ダッシュボード</MudNavLink>
+                <MudNavLink Href="#">位置情報</MudNavLink>
+            </MudExpansionPanel>
+            <!-- メンテナンス（ドロップダウン） -->
+            <MudExpansionPanel Text="メンテナンス">
+                <MudNavLink Href="#">ログ</MudNavLink>
+                <MudNavLink Href="#">本体操作</MudNavLink>
+                <MudNavLink Href="/HardwareInfo">ハードウェア情報</MudNavLink>
+                <MudNavLink Href="#">バックアップ</MudNavLink>
+                <MudNavLink Href="#">製品情報</MudNavLink>
+            </MudExpansionPanel>
+        </MudNavMenu>
+    </MudDrawer>
+
+    @* 右側のメインコンテンツエリア *@
+    <MudMainContent>
+        <div class="page">
+            <main>
+                <article class="content px-4">
+                    @Body
+                </article>
+            </main>
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code
+{
+
+    MudTheme MyCustomTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#011A27",
+            Secondary = "#063852",
+            AppbarBackground = "#011A27",
+            Info = "#E6DF44",
+            Error = "#E6DF44",
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = Colors.Blue.Lighten1
+        },
+
+        LayoutProperties = new LayoutProperties()
+        {
+            DrawerWidthLeft = "260px",
+            DrawerWidthRight = "300px"
+        },
+    };
+}

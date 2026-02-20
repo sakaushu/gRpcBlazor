@@ -1,0 +1,111 @@
+@inject Services.AzureIoTEdgeService AzureIoTEdgeService
+@inject MudBlazor.ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (EditModel != null)
+        {
+        <MudGrid>
+            <MudItem xs="12">
+                <MudRadioGroup T="bool" @bind-Value="EditModel.IsX509">
+                    <MudItem xs="12">
+                        <MudRadio T="bool" Value="false" Color="Color.Primary">対称キーを使用する</MudRadio>
+                    </MudItem>
+                    <MudGrid>
+                        <MudItem xs="5" Class="d-flex align-center"><MudText>接続文字列：</MudText></MudItem>
+                        <MudItem xs="7">
+                            <MudTextField @bind-Value="EditModel.ConnectionString" 
+                                        Variant="Variant.Outlined" 
+                                        Disabled="@(EditModel.IsX509)" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudItem xs="12">
+                        <MudRadio T="bool" Value="true" Color="Color.Primary">証明書を使用する</MudRadio>
+                    </MudItem>
+                    <MudGrid Style="margin-bottom: 20px;">
+                        <MudItem xs="3" Class="d-flex align-center"><MudText>ホスト：</MudText></MudItem>
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="EditModel.Host" 
+                                        Variant="Variant.Outlined" 
+                                        Disabled="@(!EditModel.IsX509)" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudGrid Style="margin-bottom: 20px;">
+                        <MudItem xs="3" Class="d-flex align-center"><MudText>デバイスID：</MudText></MudItem>
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="EditModel.DeviceID" 
+                                        Variant="Variant.Outlined" 
+                                        Disabled="@(!EditModel.IsX509)" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudGrid Style="margin-bottom: 20px;">
+                        <MudItem xs="3" Class="d-flex align-center"><MudText>証明書：</MudText></MudItem>
+                        <MudItem xs="4">
+                            <MudSelect T="string?" @bind-Value="@EditModel.Identity.CertPath" Style="width: 300px;" Variant="Variant.Outlined" Disabled="@(!EditModel.IsX509)">
+                                @foreach (var certificate in Certificates)
+                                {
+                                    <MudSelectItem T="string?" Value="@certificate">@certificate</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudRadioGroup>
+            </MudItem>
+        </MudGrid>
+        }
+        else
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudItem xs = "12" Class="d-flex justify-end align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnOk">OK</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="OnCancel">キャンセル</MudButton>
+        </MudItem>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    private ConnectionSettingsModel? ConnectionSettings;
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private ConnectionSettingsModel? EditModel { get; set; }
+    private List<string> Certificates { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AzureIoTEdgeService.GetConnectionSettingsAsync();
+        ConnectionSettings = AzureIoTEdgeService.GetConnectionSettingsModel();
+        if (ConnectionSettings != null)
+        {
+            EditModel = AzureIoTEdgeService.CloneModel(ConnectionSettings);
+            
+            // Core側から取得したCertPathをドロップダウンに追加
+            if (!string.IsNullOrEmpty(EditModel.Identity?.CertPath))
+            {
+                Certificates.Add(EditModel.Identity.CertPath);
+            }
+        }
+    }
+
+    private async Task OnOk()
+    {
+        try
+        {
+            // サーバーに接続設定を送信して更新
+            await AzureIoTEdgeService.UpdateConnectionSettingsAsync(EditModel!);
+            Snackbar.Add("接続設定の更新に成功しました", Severity.Success);
+            MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"接続設定の更新に失敗しました: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnCancel()
+    {
+        MudDialog.Cancel();
+    }
+}

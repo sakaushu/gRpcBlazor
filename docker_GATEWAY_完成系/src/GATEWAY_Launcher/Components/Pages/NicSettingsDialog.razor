@@ -1,0 +1,132 @@
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using System.Net
+@using System.Net.Sockets;
+@inject Services.NicConfigService NicService
+@inject MudBlazor.ISnackbar Snackbar
+
+@if (Model != null)
+{
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            @foreach (var eth in Model.Interfaces)
+            {
+                <MudItem xs="12">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Typo="Typo.h6">@eth.Name</MudText>
+                        <MudGrid>
+                            <MudItem xs="6"><MudText>物理アドレス：</MudText></MudItem>
+                            <MudItem xs="6"><MudText>@eth.Mac</MudText></MudItem>
+                            <MudItem xs="6"><MudText>DHCP有効：</MudText></MudItem>
+                                <MudItem xs="6">
+                                    <MudSelect T="bool" @bind-Value="eth.DhcpEnabled" AdornmentColor="Color.Primary">
+                                        <MudSelectItem Value="true">有効</MudSelectItem>
+                                        <MudSelectItem Value="false">無効</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                            <MudItem xs="6"><MudText>IPアドレス：</MudText></MudItem>
+                                <MudItem xs="6">
+                                <MudTextField @bind-Value="eth.IpAddress" Variant="Variant.Outlined" Disabled="eth.DhcpEnabled" Style="@GetInputStyleIp(eth)">
+                                </MudTextField>
+                                </MudItem>
+                            <MudItem xs="6"><MudText>サブネットマスク：</MudText></MudItem>
+                            <MudItem xs="6">
+                                <MudTextField @bind-Value="eth.SubnetMask" Variant="Variant.Outlined" Disabled="eth.DhcpEnabled" Style="@GetInputStyleIp(eth)">
+                                </MudTextField>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+            }
+            <MudItem xs="12">
+                <MudPaper Outlined="true" Class="pa-4">
+                    <MudText Typo="Typo.h6">ルート・DNS</MudText>
+                    <MudGrid>
+                        <MudItem xs="6"><MudText>デフォルトゲートウェイ：</MudText></MudItem>
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="Model.DefaultGateway" Variant="Variant.Outlined">
+                            </MudTextField>
+                        </MudItem>
+                        <MudItem xs="6"><MudText>Primary DNS：</MudText></MudItem>
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="Model.DnsServers[0]" Variant="Variant.Outlined">
+                            </MudTextField>
+                        </MudItem>
+                        <MudItem xs="6"><MudText>Secondary DNS：</MudText></MudItem>
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="Model.DnsServers[1]" Variant="Variant.Outlined">
+                            </MudTextField>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudItem xs = "12" Class="d-flex justify-end align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnOk">OK</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="OnCancel">キャンセル</MudButton>
+        </MudItem>
+    </DialogActions>
+</MudDialog>
+}
+else
+{
+    <MudText>データを読み込み中...</MudText>
+}
+
+@code{
+
+    private NicConfigModel? Model;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+
+    // 初期表示時にDHCP有効の場合はIP設定をクリア
+    protected override async Task OnInitializedAsync()
+    {
+        // 設定ファイルから取得した値をModelに代入
+        Model = await NicService.GetConfigurationFile();
+        // DHCP有効の場合はIP設定をクリア
+        NicService.ClearIpIfDhcpEnabled(Model);
+    }
+
+    // DHCP設定変更時の処理
+    private void OnDhcpChanged(EthInfo eth, bool isEnabled) => NicService.SetDhcpEnabled(eth, isEnabled);
+
+    private string GetInputStyleIp(EthInfo eth) =>
+        eth.DhcpEnabled ? "background-color: #f0f0f0; color: #888;" : "";
+ 
+    private async Task OnOk()
+    {
+        // 入力値の検証
+        if (!NicService.ValidateInputs(Model))
+        {
+            Snackbar.Add("入力値に不正があります", Severity.Error);
+            return;
+        }
+
+        if (NicService.TryGetDuplicateIp(Model, out string duplicateIp))
+        {
+            Snackbar.Add($"重複したIPアドレスがあります: {duplicateIp}", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            // サーバーにネットワーク設定を適用
+            await NicService.ApplySettings(Model);
+            Snackbar.Add("ネットワーク設定を適用しました", Severity.Success);
+            // ダイアログを閉じる
+            MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"ネットワーク設定の適用に失敗しました: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnCancel() => MudDialog.Cancel();
+}

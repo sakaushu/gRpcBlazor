@@ -1,0 +1,117 @@
+@page "/proxy"
+@layout MainLayout
+@rendermode InteractiveServer
+@inject MudBlazor.ISnackbar Snackbar
+@inject Services.ProxyService ProxyService
+@if (Model != null)
+{
+    <PageTitle>Proxy</PageTitle>
+
+    <MudGrid>
+        <MudItem xs="12">
+            <MudRadioGroup T="bool" Value="Model.SelectedProxyType" ValueChanged="OnSelectedProxyTypeChanged">
+                <MudItem xs="12">
+                    <MudRadio T="bool" Value="false" Color="Color.Primary">プロキシを使用しない</MudRadio>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudRadio T="bool" Value="true" Color="Color.Primary">プロキシを使用する</MudRadio>
+                </MudItem>
+            </MudRadioGroup>
+        </MudItem>
+
+        <MudItem xs="2" Class="d-flex align-center"><MudText>プロキシサーバ：</MudText></MudItem>
+        <MudItem xs="4">
+            <MudTextField @bind-Value="Model.ProxyServer" 
+                        Variant="Variant.Outlined" 
+                        Disabled="!Model.SelectedProxyType" 
+                        Style="@GetInputStyle()" />
+        </MudItem>
+        <MudItem xs="1" Class="d-flex align-center"><MudText>ポート：</MudText></MudItem>
+        <MudItem xs="2">
+            <MudTextField @bind-Value="Model.ProxyPort" 
+                        Variant="Variant.Outlined" 
+                        Disabled="!Model.SelectedProxyType" 
+                        Style="@GetInputStyle()" />
+        </MudItem>
+    </MudGrid>
+
+    <MudItem Class="d-flex justify-end align-center">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnProxySettings" >
+            適用
+        </MudButton>
+    </MudItem>
+
+}
+else
+{
+	<MudText>データを読み込み中...</MudText>
+}
+
+@code {
+    private ProxyModel? Model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // サーバーからデータをロード
+            await ProxyService.LoadFromServerAsync();
+            Model = ProxyService.GetModel();
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"プロキシ設定の読み込みに失敗しました: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private string GetInputStyle() =>
+        Model != null && !Model.SelectedProxyType ? "background-color: #f0f0f0; color: #888;" : "";
+    
+    private void OnSelectedProxyTypeChanged(bool value)
+    {
+        Model!.SelectedProxyType = value;
+        if (!value)
+        {
+            // プロキシを使わない場合はサーバ/ポートを空にする
+            Model.ProxyServer = null;
+            Model.ProxyPort = null;
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnProxySettings()
+    {
+        try
+        {
+            if (Model == null) return;
+            
+            var (isValid, errorMessage) = ProxyService.ValidateInputs(Model);
+            // バリデーション
+            if (!isValid)
+            {
+                Snackbar.Add(errorMessage ?? "入力エラー", Severity.Error);
+                return;
+            }
+
+            var updateModel = await ProxyService.SaveProxySettings(Model);
+
+            if (updateModel != null)
+            {
+                // モデルを更新して画面を再描画
+                Model = updateModel;
+
+                Snackbar.Add("プロキシ設定が正常に保存されました", Severity.Success);
+
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add("プロキシ設定の保存に失敗しました", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"プロキシ設定の保存中にエラーが発生しました: {ex.Message}", Severity.Error);
+        }
+    }
+}

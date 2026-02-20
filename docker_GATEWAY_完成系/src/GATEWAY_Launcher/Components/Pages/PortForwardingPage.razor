@@ -1,0 +1,171 @@
+@page "/PortForwarding"
+@layout MainLayout
+@rendermode InteractiveServer
+@inject MudBlazor.IDialogService DialogService
+@inject Services.PortForwardingService PortForwardingService
+@inject MudBlazor.ISnackbar Snackbar
+
+<PageTitle>ポートフォワーディング</PageTitle>
+
+<style> 
+    .selected {
+        background-color: #1E88E5 !important; 
+    } .selected td {
+        color: white !important; 
+    } .selected td .mud-input {
+        color: white !important;
+    } 
+</style>
+
+@if (Model != null)
+{
+    <MudGrid Style="margin-top: 20px;">
+        <MudItem xs="11">
+            <MudTable Items="@Model.Elements" Hover="true" @bind-SelectedItem="@selectedElement" SelectOnRowClick="true" 
+                      RowClassFunc="@SelectedRowClassFunc">
+                <HeaderContent>
+                    <MudTh>受信インターフェース</MudTh>
+                    <MudTh>プロトコル</MudTh>
+                    <MudTh>受信ポート</MudTh>
+                    <MudTh>転送先IPアドレス</MudTh>
+                    <MudTh>転送先ポート</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="受信インターフェース">@context.Interface</MudTd>
+                    <MudTd DataLabel="プロトコル">@((context.IsTcp) ? "TCP" : "UDP")</MudTd>
+                    <MudTd DataLabel="受信ポート">@context.ReceptionPort</MudTd>
+                    <MudTd DataLabel="転送先IPアドレス">@context.DestinationIp</MudTd>
+                    <MudTd DataLabel="転送先ポート">@context.DestinationPort</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+        <MudItem xs="1" Class="justify-end align-center">
+            <MudStack Spacing="2"> 
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnAdd">追加</MudButton> 
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnEdit">編集</MudButton> 
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnDelete">削除</MudButton> 
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Style="margin-top: 20px;" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+        <MudItem>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" Style="min-width: 110px;" OnClick="Applicable">
+                    適用
+                </MudButton>
+        </MudItem> 
+    </MudGrid> 
+}
+else
+{
+    <MudText>データを読み込み中...</MudText>
+}
+
+@code {
+    private PortForwardingModel? Model;
+    private PortForwardingElement? selectedElement;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PortForwardingService.LoadFromServerAsync();
+        Model = PortForwardingService.GetModel();
+    }
+
+    /// <summary>
+    /// 行の選択状態に応じてCSSクラスを返す関数。選択された行には"selected"クラスを適用する。
+    /// </summary>
+    /// <param name="element">行の要素</param>
+    /// <param name="rowNumber">行番号</param>
+    /// <returns>CSSクラス名</returns>
+    private string SelectedRowClassFunc(PortForwardingElement? element, int rowNumber)
+    {
+        return selectedElement != null && selectedElement == element ? "selected" : string.Empty;
+    }
+
+    /// <summary>
+    /// 追加ボタン押下時、新しい設定を追加するダイアログを表示する
+    /// </summary>
+    private async Task OnAdd()
+    {
+
+        var response = await PortForwardingService.ShowPortForwardingSettingDialogAsync(null,Model);
+
+        if (!response.Canceled && response.Data != null)
+        {
+            var newElement = (PortForwardingElement)response.Data;
+            Model?.Elements.Add(newElement);
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// 編集ボタン押下時、選択された設定を編集するダイアログを表示する
+    /// </summary>
+    private async Task OnEdit()
+    {
+        // テーブルの値が選択されていない場合
+        if (selectedElement == null)
+        {
+            await PortForwardingService.ShowErrorDialogAsync("値を選択してください");
+            return;
+        }
+
+        // 選択された行を編集するダイアログを表示
+        var response = await PortForwardingService.ShowPortForwardingSettingDialogAsync(selectedElement, Model);
+
+        if (!response.Canceled && response.Data != null)
+        {
+            var updatedElement = (PortForwardingElement)response.Data;
+            // 既存の要素を更新
+            var index = Model?.Elements.IndexOf(selectedElement) ?? -1;
+            if (index >= 0 && Model != null)
+            {
+                Model.Elements[index] = updatedElement;
+                selectedElement = updatedElement;
+                StateHasChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 削除ボタン押下時、選択された設定を削除する
+    /// </summary>
+    private async Task OnDelete()
+    {
+        // テーブルの値が選択されていない場合
+        if (selectedElement == null)
+        {
+            await PortForwardingService.ShowErrorDialogAsync("値を選択してください");
+            return;
+        }
+
+        // 確認ダイアログを表示
+        var confirmed = await PortForwardingService.ShowConfirmDialogAsync("選択した設定を削除していいですか");
+        
+        if (confirmed)
+        {
+            Model?.Elements.Remove(selectedElement);
+            selectedElement = null;
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
+    /// 適用ボタン押下時、現在の設定をサーバーに送信して適用する
+    /// </summary>
+    private async Task Applicable()
+    {
+        if (Model == null) return;
+        try
+        {
+            var response = await PortForwardingService.ApplySettingsAsync(Model);
+            var msg = response.Message;
+            var severity = response.Success == true ? Severity.Success : Severity.Error;
+            Snackbar.Add(msg, severity);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"設定の適用エラー: {ex.Message}", Severity.Error);
+        }
+    }
+}

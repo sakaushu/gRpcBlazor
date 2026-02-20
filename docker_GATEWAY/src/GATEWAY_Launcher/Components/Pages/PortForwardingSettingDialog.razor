@@ -1,0 +1,119 @@
+@inject Services.PortForwardingService PortForwardingService
+@inject MudBlazor.ISnackbar Snackbar
+@inject MudBlazor.IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        @if (EditElement != null)
+        {
+            <MudGrid Style="margin-bottom: 20px;">
+                <MudItem xs="6" Class="d-flex align-center"><MudText>受信インターフェース：</MudText></MudItem>
+                <MudItem xs="6">
+                    <MudSelect T="string?" @bind-Value="@EditElement.Interface" Style="width: 300px;" Variant="Variant.Outlined">
+                        @foreach (var iface in interfaces)
+                            {
+                                <MudSelectItem T="string?" Value="@iface">@iface</MudSelectItem>
+                            }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+             <MudGrid Style="margin-bottom: 20px;">
+                <MudItem xs="6" Class="d-flex align-center"><MudText>プロトコル：</MudText></MudItem>
+                <MudItem xs="6">
+                    <MudSelect T="bool" @bind-Value="@EditElement.IsTcp" Style="width: 300px;" Variant="Variant.Outlined">
+                        <MudSelectItem T="bool" Value="true">TCP</MudSelectItem>
+                        <MudSelectItem T="bool" Value="false">UDP</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+            <MudGrid Style="margin-bottom: 20px;">
+                <MudItem xs="6" Class="d-flex align-center"><MudText>受信ポート：</MudText></MudItem>
+                <MudItem xs="3">
+                    <MudTextField @bind-Value="EditElement.ReceptionPort" Variant="Variant.Outlined" Style="width: 150px;" />
+                </MudItem>
+            </MudGrid>
+            <MudGrid Style="margin-bottom: 20px;">
+                <MudItem xs="6" Class="d-flex align-center"><MudText>転送先IPアドレス：</MudText></MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="EditElement.DestinationIp" Variant="Variant.Outlined" Style="width: 250px;" />
+                </MudItem>
+            </MudGrid>
+            <MudGrid>
+                <MudItem xs="6" Class="d-flex align-center"><MudText>転送先ポート：</MudText></MudItem>
+                <MudItem xs="3">
+                    <MudTextField @bind-Value="EditElement.DestinationPort" Variant="Variant.Outlined" Style="width: 150px;" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudItem xs = "12" Class="d-flex justify-end align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnOk">OK</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="OnCancel">キャンセル</MudButton>
+        </MudItem>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    //選択した要素を受け取るためのパラメータ
+    [Parameter] public required PortForwardingElement? Element { get; set; }
+    //モデル全体を受け取るためのパラメータ
+    [Parameter] public required PortForwardingModel? Model { get; set; }
+    private PortForwardingElement EditElement = new PortForwardingElement();
+    private List<string> interfaces = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        //サーバーからインターフェース一覧を取得
+        interfaces = await PortForwardingService.GetNetworkInterfacesAsync();
+        
+        if (Element == null)
+        {
+            // 新規追加の場合：デフォルト値を設定
+            EditElement = new PortForwardingElement
+            {
+                Interface = interfaces.FirstOrDefault(),
+                IsTcp = true,
+                ReceptionPort = null,
+                DestinationIp = string.Empty,
+                DestinationPort = null
+            };
+        }
+        else
+        {
+            // 編集の場合：既存の値をコピー
+            EditElement = new PortForwardingElement
+            {
+                Interface = Element.Interface,
+                IsTcp = Element.IsTcp,
+                ReceptionPort = Element.ReceptionPort,
+                DestinationIp = Element.DestinationIp,
+                DestinationPort = Element.DestinationPort
+            };
+        }
+        
+    }
+
+    private void OnOk()
+    {
+        var (isValid, errorMessage) = PortForwardingService.ValidateInputs(EditElement, Element, Model);
+        // バリデーション
+        if (!isValid)
+        {
+            Snackbar.Add(errorMessage ?? "入力エラー", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(EditElement));
+    }
+
+    private void OnCancel()
+    {
+        MudDialog.Cancel();
+    }
+}

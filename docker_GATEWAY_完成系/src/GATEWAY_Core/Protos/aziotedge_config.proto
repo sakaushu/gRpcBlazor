@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package GATEWAYCore;
+
+// ===== Service =====
+service AzIotEdgeConfigService {
+    
+    // Azure IoT Edgeステータス取得
+    rpc GetAzIotEdgeStatus(google.protobuf.Empty) returns (AzIotEdgeStatusResponse);
+
+    // Azure IoT Edge モジュール情報取得
+    rpc GetAzIotEdgeModuleInfo(google.protobuf.Empty) returns (AzIotEdgeModuleInfoResponse);
+
+    // Azure IoT Edge 接続設定取得
+    rpc GetAzIotEdgeConnectionConfig(google.protobuf.Empty) returns (AzIotEdgeConnectionConfig);
+
+    // Azure IoT Edge 接続設定更新
+    rpc ApplyAzIotEdgeConnectionConfig(AzIotEdgeConnectionConfig) returns (AzIotEdgeConnectionConfig);
+}
+
+// ===== Message =====
+message AzIotEdgeStatusResponse {
+    map<string, string> aziotedge_status = 1;
+}
+
+message AzIotEdgeModuleInfoResponse {
+    repeated AzIotEdgeModuleInfo moduleInfoList = 1;
+}
+
+message AzIotEdgeModuleInfo {
+    string name = 1;
+    string status = 2;
+    string description = 3;
+    string config = 4;
+}
+
+message AzIotEdgeConnectionConfig {
+    string connection_string = 1;
+    string host_name = 2;
+    string device_id = 3;
+    bool is_x509 = 4;
+    X509Identity identity = 5;
+}
+
+// X.509証明書と秘密鍵の組み合わせ
+message X509Identity {
+    string cert_path = 1;  // 証明書ファイルのパス
+    string key_path = 2;   // 秘密鍵ファイルのパス
+}

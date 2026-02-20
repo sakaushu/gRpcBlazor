@@ -1,0 +1,150 @@
+@page "/timesetting"
+@layout MainLayout
+@rendermode InteractiveServer
+@using Grpc.Core
+@inject Services.TimeSettingService TimeService
+@inject MudBlazor.ISnackbar Snackbar
+
+<PageTitle>時間設定</PageTitle>
+
+@if (Model == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudGrid Style="margin-bottom: 20px;">
+        <MudItem xs="1" Class="d-flex justify-start align-center"><MudText>現在日時：</MudText></MudItem>
+        <MudItem xs="3" Class="d-flex justify-end align-center"><MudText>@Model.CurrentTime</MudText></MudItem>
+        <MudItem xs="1" Class="d-flex justify-end align-center">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@Model.NtpSetting.SyncCheck" OnClick="OnChangeTime">
+                変更
+            </MudButton>
+        </MudItem> 
+        <MudItem xs="1" Class="d-flex justify-end align-center">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnSyncNtp">
+                NTP設定
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Style="margin-bottom: 20px;">
+        <MudItem xs="1" Class="d-flex justify-start align-center"><MudText>タイムゾーン：</MudText></MudItem>
+        <MudItem xs="5" Class="d-flex justify-end align-center">
+            <MudSelect T="string?" @bind-Value="@Model.SelectedTimeZone" Style="width: 300px;" Variant="Variant.Outlined">
+                 @foreach (var timezone in Model.TimeZones)
+                {
+                    <MudSelectItem T="string?" Value="@timezone">@timezone</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="6" Class="d-flex justify-end align-center">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SetTimeZone">
+                適用
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+}
+
+
+
+@code {
+
+    private TimeSettingModel? Model;
+
+        protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // サービスを介して現在時刻、タイムゾーン、NTP設定を取得
+            Model = await TimeService.GetCurrentTimeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"データの取得時にエラーが発生しました: {ex.Message}", Severity.Error);
+        }
+    }
+    
+
+    private async Task OnChangeTime()
+    {
+        if (Model == null) return;
+
+        // 日時変更ダイアログ表示
+        var updatedDate = await TimeService.ShowChangeTimeDialogAsync(Model.CurrentTime);
+
+        if (updatedDate.HasValue)
+        {
+            Model.CurrentTime = updatedDate.Value;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSyncNtp()
+    {
+        if (Model == null) return;
+
+        // NTP設定変更ダイアログ表示
+        var ntpSetting = await TimeService.ShowChangeNtpDialogAsync(Model.NtpSetting);
+
+        if (ntpSetting != null)
+        {
+            Model.NtpSetting = ntpSetting;
+            Snackbar.Add("NTP同期設定を適用しました", Severity.Success);
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetTimeZone()
+    {
+        try
+        {
+            if (Model == null) return;
+            
+            // サーバーに選択されたタイムゾーンを送信し、レスポンスを取得
+            var updatedTimeZone = await TimeService.SetTimeZoneAsync(Model.SelectedTimeZone ?? "");
+
+            if (!string.IsNullOrWhiteSpace(updatedTimeZone))
+            {
+                Model.SelectedTimeZone = updatedTimeZone;
+
+                Snackbar.Add("タイムゾーンを適用しました", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("サーバーからのレスポンスが正しくありません", Severity.Warning);
+            }       
+            StateHasChanged();
+        }
+        catch (RpcException rpcEx)
+        {
+            // gRPCエラーのステータスコードによる分岐
+            switch (rpcEx.Status.StatusCode)
+            {
+                case StatusCode.InvalidArgument:
+                    Snackbar.Add("タイムゾーンが無効です。有効なタイムゾーンを選択してください。", Severity.Warning);
+                    break;
+
+                case StatusCode.PermissionDenied:
+                    Snackbar.Add("タイムゾーンを設定する権限がありません。", Severity.Error);
+                    break;
+
+                default:
+                    Snackbar.Add($"タイムゾーン変更の適用時にエラーが発生しました: {rpcEx.Status.Detail}", Severity.Error);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // その他エラー（サーバーや通信エラー）
+            Snackbar.Add($"予期しないエラーが発生しました: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

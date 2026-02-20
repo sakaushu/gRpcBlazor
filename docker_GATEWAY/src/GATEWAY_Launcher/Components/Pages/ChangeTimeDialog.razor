@@ -1,0 +1,132 @@
+@inject Services.TimeSettingService TimeService
+
+<MudDialog>
+    <DialogContent>
+        <!-- グリッドでUIを構成 -->
+        <MudGrid>
+            <MudItem xs="3" Class="d-flex align-center"><MudText>日時：</MudText></MudItem>
+            
+            <!-- 年 ドロップダウン -->
+            <MudItem xs="3">
+                <MudSelect T="string" Value="@EditModel.Year" ValueChanged="OnYearChanged" Style="width: 150px;" Variant="Variant.Outlined">
+                    @foreach (var year in Years)
+                    {
+                        <MudSelectItem T="string" Value="@year">@year</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- 月 ドロップダウン -->
+            <MudItem xs="3">
+                <MudSelect T="string" Value="@EditModel.Month" ValueChanged="OnMonthChanged" Style="width: 150px;" Variant="Variant.Outlined">
+                    @foreach (var month in Months)
+                    {
+                        <MudSelectItem T="string" Value="@month">@month</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- 日 ドロップダウン -->
+            <MudItem xs="3">
+                <MudSelect T="string" @bind-Value="EditModel.Day" Style="width: 150px;" Variant="Variant.Outlined">
+                    @foreach (var day in Days)
+                    {
+                        <MudSelectItem T="string" Value="@day">@day</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Style="margin-top: 20px;">
+            <MudItem xs="3" Class="d-flex align-center"><MudText>時刻：</MudText></MudItem>
+            
+            <!-- 時間 ドロップダウン -->
+            <MudItem xs="3">
+                <MudSelect T="string" @bind-Value="EditModel.Time" Style="width: 150px;" Variant="Variant.Outlined"> 
+                    @foreach (var time in Times)
+                    {
+                        <MudSelectItem T="string" Value="@time">@time</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- 分 ドロップダウン -->
+            <MudItem xs="3">
+                <MudSelect T="string" @bind-Value="EditModel.Minute" Style="width: 150px;" Variant="Variant.Outlined">
+                    @foreach (var minute in Minutes)
+                    {
+                        <MudSelectItem T="string" Value="@minute">@minute</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudItem xs = "12" Class="d-flex justify-end align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnOk">OK</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="OnCancel">キャンセル</MudButton>
+        </MudItem>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public DateTime CurrentTime { get; set; }
+
+    private EditDateModel EditModel = new EditDateModel();
+
+    private List<string> Years = new();
+    private List<string> Months = new();
+    private List<string> Days = new();
+    private List<string> Times = new();
+    private List<string> Minutes = new();
+    protected override void OnParametersSet()
+    {
+        Years = TimeService.GenerateYearList(CurrentTime);
+        Months = TimeService.GenerateMonthList();
+        Days = TimeService.GenerateDayList(CurrentTime.Year, CurrentTime.Month);
+        Times = TimeService.GenerateTimeList();
+        Minutes = TimeService.GenerateMinuteList();
+        
+        // 現在の年、月、日時分をモデルに初期設定する
+        EditModel.Year = $"{CurrentTime.Year}年";
+        EditModel.Month = $"{CurrentTime.Month}月";
+        EditModel.Day = $"{CurrentTime.Day}日";
+        EditModel.Time = $"{CurrentTime.Hour:D2}時";
+        EditModel.Minute = $"{CurrentTime.Minute:D2}分";
+    }
+
+    private void OnYearChanged(string newYear)
+    {
+        EditModel.Year = newYear;
+        Days = TimeService.UpdateDayList(EditModel);
+    }
+
+    private void OnMonthChanged(string newMonth)
+    {
+        EditModel.Month = newMonth;
+        Days = TimeService.UpdateDayList(EditModel);
+    }
+
+    private async Task OnOk()
+    {
+        try
+        {
+            // 編集モデルからTimestampに変換
+            var updatedTimestamp = TimeService.ConvertEditDateModelToDateTime(EditModel);
+             // サーバーに日時を送信して変更後の日時を取得
+            var responseDateTime = await TimeService.SendUpdatedDateTimeToServerAsync(updatedTimestamp);
+            MudDialog.Close(DialogResult.Ok(responseDateTime));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
+    }
+
+    private void OnCancel()
+    {
+        MudDialog.Cancel();
+    }
+}

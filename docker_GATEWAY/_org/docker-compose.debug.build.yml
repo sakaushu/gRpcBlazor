@@ -1,0 +1,78 @@
+services:
+  blazor-client-debug:
+    build:
+      context: .
+      dockerfile: ./docker/GATEWAY_Launcher/Dockerfile.debug
+    image: robocross/gateway-blazor:debug
+    container_name: blazor-client-debug
+    ports:
+      - "5001:5001"
+      - "2221:2221"
+    environment:
+      # Development:開発環境 appsettings.Development.json
+      # Production:本番環境　appsettings.json
+      - ASPNETCORE_ENVIRONMENT=Development
+      - GrpcServer__Address=http://grpc-server-debug:5000
+      - VSDBG_LOG_FILE=/tmp/vsdbg.log
+      - VSDBG_ENABLED=true
+      - DOTNET_EnableDiagnostics=1
+      - Logging__FilePath=/app/logs/launcher/launcher.log
+    depends_on:
+      - grpc-server-debug
+    networks:
+      - grpc-network
+    restart: unless-stopped
+    volumes:
+      - ./logs/launcher:/app/logs/launcher
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+
+  grpc-server-debug:
+    build:
+      context: .
+      dockerfile: ./docker/GATEWAY_Core/Dockerfile.debug
+    image: robocross/gateway-core:debug
+    container_name: grpc-server-debug
+    ports:
+      - "5000:5000"
+      - "2222:2222"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+      - VSDBG_LOG_FILE=/tmp/vsdbg.log
+      - VSDBG_ENABLED=true
+      - DOTNET_EnableDiagnostics=1
+      - Logging__FilePath=/app/logs/core/grpc-server.log
+    networks:
+      - grpc-network
+    restart: unless-stopped
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /etc/machine-id:/etc/machine-id:ro
+      - ./logs/core:/app/logs/core
+      - ./config:/root/.GATEWAY_Core/Configs/user
+      - ./mnt:/app/mnt
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+
+  nginx-debug:
+    image: nginx:latest
+    container_name: nginx-proxy-debug
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/default-debug.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - blazor-client-debug
+      - grpc-server-debug
+    networks:
+      - grpc-network
+    restart: unless-stopped
+
+networks:
+  grpc-network:
+    driver: bridge
