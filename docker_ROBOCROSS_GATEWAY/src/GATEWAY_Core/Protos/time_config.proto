@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+package GATEWAYCore;
+
+// ===== Service =====
+service TimeConfigService {
+    
+    // 時刻取得
+    rpc GetSystemTime(google.protobuf.Empty) returns (SystemTimeResponse);
+
+    // 時刻設定
+    rpc ApplySystemTime(SystemTimeRequest) returns (SystemTimeResponse);
+
+    // タイムゾーン取得
+    rpc GetTimeZone(google.protobuf.Empty) returns (TimeZoneResponse);
+    
+    // タイムゾーン設定
+    rpc ApplyTimeZone(TimeZoneRequest) returns (TimeZoneResponse);
+
+    // タイムゾーン一覧取得
+    rpc GetTimeZoneList(google.protobuf.Empty) returns (TimeZoneListResponse);
+
+    // NTP設定取得
+    rpc GetNTPConfig(google.protobuf.Empty) returns (NTPConfig);
+
+    // NTP設定変更
+    rpc ApplyNTPConfig(NTPConfig) returns (NTPConfig);
+
+    // NTP即時同期
+    rpc ExecSyncNTP(NTPConfig) returns (NTPConfig);
+}
+
+// ===== Message =====
+message SystemTimeResponse{
+    google.protobuf.Timestamp time = 1;
+}
+
+message SystemTimeRequest {
+    google.protobuf.Timestamp time = 1;
+}
+
+message TimeZoneResponse {
+    string timezone_id = 1;
+    string utc_offset = 2;
+}
+
+message TimeZoneRequest {
+    string timezone = 1;
+}
+
+message TimeZoneListResponse {
+    repeated string timezone_ids = 1;
+    repeated string utc_offsets = 2;
+}
+
+message NTPConfig {
+    string server = 1;
+    bool isNTPSynced = 2;
+}

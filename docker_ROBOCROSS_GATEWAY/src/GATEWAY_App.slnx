@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="./GATEWAY_Launcher/GATEWAY_Launcher.csproj" />
+  <Project Path="./GATEWAY_Core/GATEWAY_Core.csproj" />
+</Solution>

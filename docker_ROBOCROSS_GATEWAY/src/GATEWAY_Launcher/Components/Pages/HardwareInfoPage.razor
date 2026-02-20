@@ -1,0 +1,79 @@
+@page "/HardwareInfo"
+@implements IDisposable
+@layout MainLayout
+@rendermode InteractiveServer
+@inject HardwareInfoService HardwareInfoService
+@inject GATEWAYCore.ConfigsService.ConfigsServiceClient ConfigsServiceClient
+
+<PageTitle>ハードウェア情報</PageTitle>
+
+@if (Model != null)
+{
+	<MudGrid>
+        <MudItem xs="12">
+			<MudPaper Outlined="true" Class="pa-4">
+				<MudText Typo="Typo.h6">ハードウェア情報</MudText>
+                <MudGrid>
+                    <MudItem xs="6"><MudText>CPU</MudText></MudItem>
+                    <MudItem xs="6"><MudText>@Model.CpuInfo</MudText></MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem xs="6"><MudText>CPU使用率</MudText></MudItem>
+                    <MudItem xs="6"><MudText>@Model.CpuUsage　％</MudText></MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem xs="6"><MudText>CPU温度</MudText></MudItem>
+                    <MudItem xs="6"><MudText>@Model.CpuTemperature　℃</MudText></MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem xs="6"><MudText>メモリ使用量（使用/空き）</MudText></MudItem>
+                    <MudItem xs="6"><MudText>使用:@Model.MemoryUsage　MB / 空き:@Model.MemoryAvailable　MB</MudText></MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem xs="6"><MudText>ディスク使用量（使用/空き）</MudText></MudItem>
+                    <MudItem xs="6"><MudText>使用:@Model.DiskUsage　MB / 空き:@Model.DiskAvailable　MB</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+    }
+    else
+    {
+        <MudText>データを読み込み中...</MudText>
+    }
+
+    @code{
+        private HardwareInfoModel? Model;
+        // フィールドにイベントハンドラを保持
+        private Action? _onChangeHandler;
+
+        protected override async Task OnInitializedAsync()
+        {
+            _onChangeHandler = () => { _ = InvokeAsync(StateHasChanged); };
+            HardwareInfoService.OnChange += _onChangeHandler;
+            Model = HardwareInfoService.GetModel();
+            // 設定値を取得（ミリ秒単位で取得する想定）
+            int intervalMs = 10000; // デフォルト値
+            try
+            {
+                intervalMs = await ConfigsServiceClient.GetConfigAsync<int>(GATEWAYCore.ConfigKey.HardwareInfoDisplayInterval);
+            }
+            catch
+            {
+                // 取得失敗時はデフォルト値
+            }
+            HardwareInfoService.StartAutoRefresh(intervalMs);
+        }
+
+        public void Dispose()
+        {
+            // イベントハンドラを解除
+            if (_onChangeHandler != null)
+            {
+                HardwareInfoService.OnChange -= _onChangeHandler;
+                _onChangeHandler = null;
+            }    
+            // ポーリングを停止
+            HardwareInfoService.StopPeriodicLoad();
+        }
+    }

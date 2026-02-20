@@ -1,0 +1,62 @@
+@page "/AzureIoTEdge"
+@layout MainLayout
+@rendermode InteractiveServer
+@inject MudBlazor.IDialogService DialogService
+@inject Services.AzureIoTEdgeService AzureIoTEdgeService
+
+<PageTitle>Azure IoT Edge</PageTitle>
+
+@if (Model != null)
+{
+	<MudGrid>
+        <MudItem xs="12">
+			<MudPaper Outlined="true" Class="pa-4">
+				<MudText Typo="Typo.h6">Azure IoT Edge ステータス</MudText>
+                @foreach (var service in Model.StatusMap)
+                {
+                    <MudGrid>
+                        <MudItem xs="6"><MudText>@service.Key</MudText></MudItem>
+                        <MudItem xs="6"><MudText>@service.Value</MudText></MudItem>
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+		<MudItem xs="12">
+			<MudPaper Outlined="true" Class="pa-4">
+				<MudText Typo="Typo.h6">モジュール情報</MudText>
+                <MudText Typo="Typo.h6">NAME　STATUS　DESCRIPTION　CONFIG</MudText>
+                @foreach (var module in Model.Moduledata)
+                {
+                    <MudGrid>
+                        <MudItem xs="12"><MudText>@module.Name　@module.Status　@module.Description　@module.Config</MudText></MudItem>
+                    </MudGrid>
+                }
+			</MudPaper>
+		</MudItem>
+	</MudGrid>
+
+	<MudItem Class="d-flex justify-end align-center">
+		<MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectionSettings">
+			接続設定
+		</MudButton>
+	</MudItem>
+}
+else
+{
+	<MudText>データを読み込み中...</MudText>
+}
+
+@code {
+        private AzureIoTEdgeModel? Model;
+
+        protected override async Task OnInitializedAsync()
+        {
+            await AzureIoTEdgeService.LoadFromServerAsync();
+            Model = AzureIoTEdgeService.GetModel();
+        }
+
+        private async Task ConnectionSettings()
+        {
+            await AzureIoTEdgeService.ShowConnectionSettingsDialogAsync();
+        }
+    }

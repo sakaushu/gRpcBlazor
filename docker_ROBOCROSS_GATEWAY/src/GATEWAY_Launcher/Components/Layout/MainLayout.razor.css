@@ -1,0 +1,33 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* メニュー関連のスタイル */
+.mud-drawer {
+    background-color: #f5f5f5;
+}
+
+.mud-navmenu {
+    padding: 8px;
+}
+
+.mud-nav-link {
+    padding: 8px 16px;
+    margin: 4px 0;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.mud-nav-link:hover {
+    background-color: #e0e0e0;
+}
+
+.mud-expansion-panel {
+    margin-bottom: 8px;
+}

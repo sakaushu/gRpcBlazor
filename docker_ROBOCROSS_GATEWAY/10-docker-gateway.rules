@@ -1,0 +1,22 @@
+// Docker GATEWAY アプリケーション用のPolkitルール
+// rootユーザーがD-Bus経由でシステム操作を行うための認可設定
+// インストール: sudo cp -p 10-docker-gateway.rules /etc/polkit-1/rules.d/
+
+// 許可するアクション一覧
+polkit.addRule(function(action, subject) {
+  const allows = [
+    "org.freedesktop.login1.power-off",                 // シャットダウン
+    "org.freedesktop.login1.reboot",                    // 再起動
+    "org.freedesktop.timedate1.set-time",               // 時刻設定
+    "org.freedesktop.timedate1.set-timezone",           // タイムゾーン設定
+    "org.freedesktop.hostname1.set-hostname",           // ホスト名設定
+    "org.freedesktop.hostname1.set-static-hostname",    // 静的ホスト名設定
+    "org.freedesktop.NetworkManager."                   // NetworkManager全操作
+  ];
+
+  // rootユーザーによる上記アクションを許可
+  if (allows.some(a => action.id.startsWith(a)) &&
+      subject.user === "root") {
+    return polkit.Result.YES;
+  }
+});
