@@ -1,14 +1,11 @@
 services:
   blazor-client:
     image: robocross/gateway-blazor:release
-    container_name: blazor-client-release
+    container_name: blazor-client
     ports:
       - "5001:5001"
-    volumes:
-      - ./logs/launcher:/app/logs/launcher
     environment:
-      # Development:開発環境 appsettings.Development.json
-      # Production:本番環境　appsettings.json
+      # Production:本番設定 appsettings.json
       - ASPNETCORE_ENVIRONMENT=Production
       - GrpcServer__Address=http://grpc-server:5000
       - Logging__FilePath=/app/logs/launcher/launcher.log
@@ -17,10 +14,12 @@ services:
     networks:
       - grpc-network
     restart: unless-stopped
+    volumes:
+      - ./logs/launcher:/app/logs/launcher
 
   grpc-server:
     image: robocross/gateway-core:release
-    container_name: grpc-server-release
+    container_name: grpc-server
     ports:
       - "5000:5000"
     environment:
@@ -38,7 +37,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx-proxy-release
+    container_name: nginx-proxy
     ports:
       - "80:80"
     volumes:

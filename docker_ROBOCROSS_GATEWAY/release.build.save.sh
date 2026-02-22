@@ -2,13 +2,12 @@
 set -euo pipefail
 
 # save_images.sh — build and save release images to release/docker_images
-COMPOSE_BUILD_FILE=docker-compose.release.build.yml
 OUT_DIR=release/docker_images
 ARCHIVE=release/release-images.tar.gz
 mkdir -p "$OUT_DIR"
 
-echo "[1/2] Building images ($COMPOSE_BUILD_FILE)"
-docker compose -f "$COMPOSE_BUILD_FILE" build
+echo "[1/2] Building images"
+docker compose build
 
 # fixed image mapping: filename -> image
 declare -A IMAP

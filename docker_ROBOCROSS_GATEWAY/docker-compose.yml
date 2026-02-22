@@ -3,12 +3,12 @@ services:
     build:
       context: .
       dockerfile: ./docker/GATEWAY_Launcher/Dockerfile
+    image: robocross/gateway-blazor:release
     container_name: blazor-client
     ports:
       - "5001:5001"
     environment:
-      # Development:開発環境 appsettings.Development.json
-      # Production:本番環境　appsettings.json
+      # Development:開発設定 appsettings.Development.json
       - ASPNETCORE_ENVIRONMENT=Development
       - GrpcServer__Address=http://grpc-server:5000
       - Logging__FilePath=/app/logs/launcher/launcher.log
@@ -24,10 +24,12 @@ services:
     build:
       context: .
       dockerfile: ./docker/GATEWAY_Core/Dockerfile
+    image: robocross/gateway-core:release
     container_name: grpc-server
     ports:
       - "5000:5000"
     environment:
+      # Development:開発設定 appsettings.Development.json
       - ASPNETCORE_ENVIRONMENT=Development
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
       - Logging__FilePath=/app/logs/core/grpc-server.log

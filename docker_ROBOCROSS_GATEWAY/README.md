@@ -7,43 +7,35 @@
 |||
 |-|-|
 | `10-docker-gateway.rules` | udev / system 配置用ルール（運用環境向け）|
-| `docker-compose.yml` | 開発用 compose（ホストのログをマウント）|
-| `docker-compose.release.build.yml` | リリース用ビルド定義（イメージをビルド）|
+| `docker-compose.yml` | 開発用 compose（Linux 実機でビルド＆起動）|
 | `docker-compose.release.deploy.yml` | リリース用デプロイ定義（配布先での起動）|
-| `start.sh` / `stop.sh` | 開発用起動／停止スクリプト|
-| `release.build.save.sh` | リリース用イメージをビルドして保存（`release/release-images.tar.gz` を作成）|
-| `release.deploy.run.sh` | 配布先でアーカイブを読み込み、サービスを起動／停止するスクリプト|
-| `save_images.sh` / `load_images.sh` | 補助スクリプト（イメージの個別保存／読み込み）|
+| `start.sh` / `stop.sh` | 開発用起動／停止スクリプト（Linux 実機）|
+| `release.build.save.sh` | リリース用イメージをビルドして保存（WSL で実行）|
+| `release.deploy.run.sh` | 配布先 Linux 実機でアーカイブを読み込み、サービスを起動|
 
-## クイックスタート（開発）
+## クイックスタート（開発 — Linux 実機）
 ```bash
-# 開発用コンテナをビルド＆起動
+# 開発用コンテナをビルド＆起動（Development 固定）
 ./start.sh
 
 # 停止（全コンテナ）
 ./stop.sh full
 ```
 
-## リリース作成（ローカルまたは CI）
+## リリース作成（WSL）
 ```bash
-# 実行権付与
 chmod +x release.build.save.sh
 
-# リリースイメージをビルドしてまとめて圧縮（出力: release/release-images.tar.gz）
+# イメージをビルドしてまとめて圧縮（出力: release/release-images.tar.gz）
 ./release.build.save.sh
 ```
 
-## リリース配布先での展開と起動
+## リリース配布先での展開と起動（Linux 実機）
 ```bash
-# 配布先でアーカイブを配置（scp 等で転送）
-# 実行権を付与
 chmod +x release.deploy.run.sh
 
-# アーカイブを読み込み、サービスを起動
-./release.deploy.run.sh up
-
-# 停止
-./release.deploy.run.sh down
+# アーカイブを読み込み、サービスを起動（Production 固定）
+./release.deploy.run.sh
 ```
 
 ## 注意点 / 運用メモ
