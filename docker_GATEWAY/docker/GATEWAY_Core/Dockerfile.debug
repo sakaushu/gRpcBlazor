@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip procps curl ca-certificates \
  && update-ca-certificates \
  && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg \
- && chmod -R a+rx /vsdbg \
  && rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -32,19 +31,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && mkdir -p /run/sshd \
  && rm -rf /var/lib/apt/lists/*
 
-# 開発用ユーザー作成（パスワードは必要に応じて修正）
-RUN useradd -m -s /bin/bash robox \
+# 開発用ユーザー作成（方法2: sudo グループ＋NOPASSWD:ALL でD-Bus含む全操作を許可）
+RUN useradd -m -G sudo -s /bin/bash robox \
  && echo 'robox:robocross' | chpasswd \
- # vsdbg/dotnet/start スクリプトの sudo を NOPASSWD で許可（最小昇格）
- && echo 'robox ALL=(ALL) NOPASSWD: /app/start-debug.sh' >> /etc/sudoers \
- && echo 'robox ALL=(ALL) NOPASSWD: /usr/bin/dotnet' >> /etc/sudoers \
- && echo 'robox ALL=(ALL) NOPASSWD: /vsdbg/vsdbg' >> /etc/sudoers \
- && echo 'export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket' >> /home/robox/.bashrc
-
-# ★ 追加：vsdbg ラッパー（robox で呼ばれても root で起動させる）
-RUN printf '%s\n' '#!/bin/sh' \
-    'exec sudo /vsdbg/vsdbg "$@"' > /usr/local/bin/vsdbg \
- && chmod +x /usr/local/bin/vsdbg
+ && echo 'robox ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+ && echo 'Defaults:robox !requiretty' >> /etc/sudoers \
+ && echo 'export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket' >> /home/robox/.bashrc \
+ && mkdir -p /home/robox/.ssh \
+ && chmod 700 /home/robox/.ssh \
+ && chown -R robox:robox /home/robox/.ssh
 
 WORKDIR /app
 COPY --from=build /app/build .
@@ -56,22 +51,33 @@ ENV ASPNETCORE_URLS=http://+:5000
 ENV ASPNETCORE_ENVIRONMENT=Development
 ENV Kestrel__EndpointDefaults__Protocols=Http2
 ENV DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
-ENV VSDBG_LOG_FILE=/tmp/vsdbg.log
-ENV VSDBG_ENABLED=true
-ENV DOTNET_EnableDiagnostics=1
 
-# 所有権（必要に応じ）
-RUN chown -R robox:robox /app
+RUN chown -R robox:robox /app \
+ && chown -R root:root /vsdbg \
+ && chmod -R 755 /vsdbg \
+ && mv /vsdbg/vsdbg /vsdbg/vsdbg_bin \
+ && printf '#!/bin/bash\nexec /usr/bin/sudo -n /vsdbg/vsdbg_bin "$@"\n' > /vsdbg/vsdbg \
+ && chmod +x /vsdbg/vsdbg
 
 # sshd 設定（開発用途）
 RUN set -eux; \
     grep -q '^Port ' /etc/ssh/sshd_config && sed -i 's/^Port .*/Port 2222/' /etc/ssh/sshd_config || echo 'Port 2222' >> /etc/ssh/sshd_config; \
     grep -q '^PasswordAuthentication ' /etc/ssh/sshd_config && sed -i 's/^PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config; \
-    echo 'PermitRootLogin no' >> /etc/ssh/sshd_config
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config; \
+    echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config; \
+    echo 'X11Forwarding no' >> /etc/ssh/sshd_config
 
-# 起動スクリプト：Core は root のまま D-Bus 前提で dotnet 起動
-RUN printf '#!/bin/bash\nset -euo pipefail\nmkdir -p /run/sshd\nssh-keygen -A >/dev/null 2>&1 || true\n' > /app/start-debug.sh \
+# rootパスワード設定（デバッグ用途）
+RUN echo 'root:robocross' | chpasswd
+
+# 起動スクリプト（sshd/dotnet ともにroot: D-Bus権限確保）
+# vsdbg は setuid root 設定済みのため robox SSH セッションからもroot プロセスへアタッチ可能
+RUN printf '#!/bin/bash\n' > /app/start-debug.sh \
+ && printf 'set -euo pipefail\n' >> /app/start-debug.sh \
+ && printf 'mkdir -p /run/sshd\n' >> /app/start-debug.sh \
+ && printf 'ssh-keygen -A >/dev/null 2>&1 || true\n' >> /app/start-debug.sh \
  && printf '/usr/sbin/sshd -E /var/log/sshd.log -p 2222\n' >> /app/start-debug.sh \
+ && printf 'echo "sshd started on port 2222"\n' >> /app/start-debug.sh \
  && printf 'export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket\n' >> /app/start-debug.sh \
  && printf 'cd /app && exec dotnet GATEWAY_Core.dll\n' >> /app/start-debug.sh \
  && chmod +x /app/start-debug.sh

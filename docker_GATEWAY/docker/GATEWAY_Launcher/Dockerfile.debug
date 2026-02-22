@@ -33,11 +33,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && mkdir -p /run/sshd \
  && rm -rf /var/lib/apt/lists/*
 
-# 開発用ユーザー作成（パスワードは必要に応じて修正）
-RUN useradd -m -s /bin/bash robox \
+# 開発用ユーザー作成（方法2: sudo グループ＋NOPASSWD:ALL）
+RUN useradd -m -G sudo -s /bin/bash robox \
  && echo 'robox:robocross' | chpasswd \
- && echo 'robox ALL=(ALL) NOPASSWD: /app/start-debug.sh' >> /etc/sudoers \
- && echo 'robox ALL=(ALL) NOPASSWD: /usr/bin/dotnet' >> /etc/sudoers
+ && echo 'robox ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+ && echo 'Defaults:robox !requiretty' >> /etc/sudoers \
+ && mkdir -p /home/robox/.ssh \
+ && chmod 700 /home/robox/.ssh \
+ && chown -R robox:robox /home/robox/.ssh
 
 WORKDIR /app
 COPY --from=publish /app/publish .
@@ -49,14 +52,19 @@ EXPOSE 2221
 ENV ASPNETCORE_URLS=http://+:5001
 ENV ASPNETCORE_ENVIRONMENT=Development
 
-# 所有者を robox に変更（アプリ実行ユーザー用）
-RUN chown -R robox:robox /app
+# 所有者を robox に変更
+RUN chown -R robox:robox /app /vsdbg
 
 # sshd の設定（あればスキップされます）
 RUN set -eux; \
     grep -q '^Port ' /etc/ssh/sshd_config && sed -i 's/^Port .*/Port 2221/' /etc/ssh/sshd_config || echo 'Port 2221' >> /etc/ssh/sshd_config; \
     grep -q '^PasswordAuthentication ' /etc/ssh/sshd_config && sed -i 's/^PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config; \
-    echo 'PermitRootLogin no' >> /etc/ssh/sshd_config
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config; \
+    echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config; \
+    echo 'X11Forwarding no' >> /etc/ssh/sshd_config
+
+# rootパスワード設定（デバッグ用途）
+RUN echo 'root:robocross' | chpasswd
 
 # 起動スクリプト（sshd 起動 → アプリ起動）
 RUN printf '#!/bin/bash\n' > /app/start-debug.sh \
@@ -65,7 +73,7 @@ RUN printf '#!/bin/bash\n' > /app/start-debug.sh \
  && printf 'ssh-keygen -A >/dev/null 2>&1 || true\n' >> /app/start-debug.sh \
  && printf '/usr/sbin/sshd -E /var/log/sshd.log -p 2221\n' >> /app/start-debug.sh \
  && printf 'echo "sshd started on port 2221"\n' >> /app/start-debug.sh \
- && printf 'exec runuser -u robox -- dotnet GATEWAY_Launcher.dll\n' >> /app/start-debug.sh \
+ && printf 'exec su -s /bin/bash robox -c "cd /app && dotnet GATEWAY_Launcher.dll"\n' >> /app/start-debug.sh \
  && chmod +x /app/start-debug.sh
 
 ENTRYPOINT ["/app/start-debug.sh"]

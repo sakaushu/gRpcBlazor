@@ -5,9 +5,6 @@ set -euo pipefail
 COMPOSE_BUILD_FILE=docker-compose.debug.build.yml
 OUT_DIR=debug/docker_images
 ARCHIVE=debug/debug-images.tar.gz
-MANIFEST=debug/debug-images.manifest.txt
-
-rm -f "$MANIFEST"
 mkdir -p "$OUT_DIR"
 
 echo "[1/2] Building images ($COMPOSE_BUILD_FILE)"
@@ -30,10 +27,6 @@ for fname in "${!IMAP[@]}"; do
   if docker image inspect "$img" >/dev/null 2>&1; then
     echo " - saving $img -> $outpath"
     docker save -o "$outpath" "$img"
-    # record content digest & image id
-    dig=$(docker image inspect "$img" -f '{{index .RepoDigests 0}}' || true)
-    id=$(docker image inspect "$img" -f '{{.Id}}' || true)
-    echo "$img  digest=$dig  id=$id  saved=$(basename "$outpath")" >> "$MANIFEST"
   else
     echo " - warning: $img not available; skipping"
   fi
@@ -41,8 +34,8 @@ done
 
 echo "Creating combined archive: $ARCHIVE"
 # create archive from files inside OUT_DIR so glob expands there
-( cd "$OUT_DIR" && tar -czf "../$(basename "$ARCHIVE")" --remove-files ./*.tar ) || true
-echo "Manifest written: $MANIFEST"
+(cd "$OUT_DIR" && tar -czf "../$(basename "$ARCHIVE")" --remove-files ./*.tar) || true
+
 echo "Saved files in $OUT_DIR and archive $ARCHIVE"
 
 # remove the temporary docker_images directory if empty (or force remove if still contains unexpected files)
@@ -54,4 +47,5 @@ if [ -d "$OUT_DIR" ]; then
     rmdir "$OUT_DIR" || true
   fi
 fi
+
 echo "Done."
