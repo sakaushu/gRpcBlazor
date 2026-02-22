@@ -3,13 +3,12 @@ services:
     build:
       context: .
       dockerfile: ./docker/GATEWAY_Launcher/Dockerfile.debug
+    image: robocross/gateway-blazor:debug
     container_name: blazor-client-debug
     ports:
       - "5001:5001"
       - "2221:2221"
     environment:
-      # Development:開発環境 appsettings.Development.json
-      # Production:本番環境　appsettings.json
       - ASPNETCORE_ENVIRONMENT=Development
       - GrpcServer__Address=http://grpc-server-debug:5000
       - VSDBG_LOG_FILE=/tmp/vsdbg.log
@@ -32,6 +31,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/GATEWAY_Core/Dockerfile.debug
+    image: robocross/gateway-core:debug
     container_name: grpc-server-debug
     ports:
       - "5000:5000"

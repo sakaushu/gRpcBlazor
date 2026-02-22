@@ -1,79 +1,59 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS base
-WORKDIR /app
-EXPOSE 5001
+# ============================================================
+# GATEWAY_Launcher - Debug Dockerfile
+# ============================================================
 
-# vsdbg と必要ツール（curl/ca-certificates）を導入
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    unzip procps curl ca-certificates \
- && update-ca-certificates \
- && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg \
- && rm -rf /var/lib/apt/lists/*
-
+# --- Stage 1: Build ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-
 COPY ["src/GATEWAY_Launcher/GATEWAY_Launcher.csproj", "GATEWAY_Launcher/"]
 COPY ["src/GATEWAY_Core/GATEWAY_Core.csproj", "GATEWAY_Core/"]
 RUN dotnet restore "GATEWAY_Launcher/GATEWAY_Launcher.csproj"
-
 COPY src/GATEWAY_Launcher/. ./GATEWAY_Launcher/
 COPY src/GATEWAY_Core/. ./GATEWAY_Core/
-# SharedCompilation 無効化（安定化に寄与）
-RUN dotnet build "GATEWAY_Launcher/GATEWAY_Launcher.csproj" -c Debug -o /app/build /p:UseSharedCompilation=false
-
-FROM build AS publish
-# DebugType=portable で PDB を同梱（embedded から変更）
 RUN dotnet publish "GATEWAY_Launcher/GATEWAY_Launcher.csproj" -c Debug -o /app/publish \
     /p:DebugType=portable /p:DebugSymbols=true /p:UseSharedCompilation=false
 
-FROM base AS final
-# SSH 導入
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssh-server openssh-client sudo \
- && mkdir -p /run/sshd \
- && rm -rf /var/lib/apt/lists/*
-
-# 開発用ユーザー作成（方法2: sudo グループ＋NOPASSWD:ALL）
-RUN useradd -m -G sudo -s /bin/bash robox \
- && echo 'robox:robocross' | chpasswd \
- && echo 'robox ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
- && echo 'Defaults:robox !requiretty' >> /etc/sudoers \
- && mkdir -p /home/robox/.ssh \
- && chmod 700 /home/robox/.ssh \
- && chown -R robox:robox /home/robox/.ssh
-
+# --- Stage 2: Runtime ---
+FROM mcr.microsoft.com/dotnet/sdk:10.0
 WORKDIR /app
-COPY --from=publish /app/publish .
-COPY --from=base /vsdbg /vsdbg
-EXPOSE 2221
+EXPOSE 5001 2221
 
+# vsdbg + ssh + user setup (single layer)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      unzip procps curl ca-certificates \
+      openssh-server openssh-client sudo \
+ && update-ca-certificates \
+ && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg \
+ && mkdir -p /run/sshd \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -m -G sudo -s /bin/bash robox \
+ && echo 'robox:robocross' | chpasswd \
+ && echo 'root:robocross'  | chpasswd \
+ && echo 'robox ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+ && echo 'Defaults:robox !requiretty'    >> /etc/sudoers \
+ && mkdir -p /home/robox/.ssh && chmod 700 /home/robox/.ssh \
+ && chown -R robox:robox /home/robox/.ssh \
+ && sed -i 's/^#\?Port .*/Port 2221/'                                    /etc/ssh/sshd_config \
+ && sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication yes/'  /etc/ssh/sshd_config \
+ && echo 'PermitRootLogin yes'    >> /etc/ssh/sshd_config \
+ && echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config \
+ && echo 'X11Forwarding no'      >> /etc/ssh/sshd_config
 
-# ASP.NET Core ポートを設定
-ENV ASPNETCORE_URLS=http://+:5001
-ENV ASPNETCORE_ENVIRONMENT=Development
+COPY --from=build /app/publish .
 
-# 所有者を robox に変更
 RUN chown -R robox:robox /app /vsdbg
 
-# sshd の設定（あればスキップされます）
-RUN set -eux; \
-    grep -q '^Port ' /etc/ssh/sshd_config && sed -i 's/^Port .*/Port 2221/' /etc/ssh/sshd_config || echo 'Port 2221' >> /etc/ssh/sshd_config; \
-    grep -q '^PasswordAuthentication ' /etc/ssh/sshd_config && sed -i 's/^PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config; \
-    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config; \
-    echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config; \
-    echo 'X11Forwarding no' >> /etc/ssh/sshd_config
+ENV ASPNETCORE_URLS=http://+:5001 \
+    ASPNETCORE_ENVIRONMENT=Development
 
-# rootパスワード設定（デバッグ用途）
-RUN echo 'root:robocross' | chpasswd
-
-# 起動スクリプト（sshd 起動 → アプリ起動）
-RUN printf '#!/bin/bash\n' > /app/start-debug.sh \
- && printf 'set -euo pipefail\n' >> /app/start-debug.sh \
- && printf 'mkdir -p /run/sshd\n' >> /app/start-debug.sh \
- && printf 'ssh-keygen -A >/dev/null 2>&1 || true\n' >> /app/start-debug.sh \
- && printf '/usr/sbin/sshd -E /var/log/sshd.log -p 2221\n' >> /app/start-debug.sh \
- && printf 'echo "sshd started on port 2221"\n' >> /app/start-debug.sh \
- && printf 'exec su -s /bin/bash robox -c "cd /app && dotnet GATEWAY_Launcher.dll"\n' >> /app/start-debug.sh \
+# Startup script
+RUN printf '#!/bin/bash\n\
+set -euo pipefail\n\
+mkdir -p /run/sshd\n\
+ssh-keygen -A >/dev/null 2>&1 || true\n\
+/usr/sbin/sshd -E /var/log/sshd.log -p 2221\n\
+echo "sshd started on port 2221"\n\
+exec su -s /bin/bash robox -c "cd /app && dotnet GATEWAY_Launcher.dll"\n' > /app/start-debug.sh \
  && chmod +x /app/start-debug.sh
 
 ENTRYPOINT ["/app/start-debug.sh"]
